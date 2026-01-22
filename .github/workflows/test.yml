@@ -302,6 +302,8 @@ jobs:
 
         # 测试错误的认证信息
         echo "  → 测试错误的认证信息"
+        # 清除缓存的 token，否则会使用缓存的有效 token
+        rm -rf ~/.nacosctl/
         export NACOS_PASSWORD="wrongpassword"
         ./nacosctl get config -A -n public 2>&1 | grep -q "authentication failed\|failed to get access token"
         if [ $? -eq 0 ]; then
