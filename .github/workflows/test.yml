@@ -266,6 +266,9 @@ jobs:
           exit 1
         fi
 
+        # 等待同步
+        sleep 2
+
         # 获取配置并验证分组
         CONTENT=$(./nacosctl get config test-prod.yaml -n public -g PROD_GROUP)
         if echo "$CONTENT" | grep -q "PROD_GROUP"; then
