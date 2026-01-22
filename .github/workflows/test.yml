@@ -89,7 +89,7 @@ jobs:
           exit 1
         fi
 
-        # 3. 列出所有配置
+        # 4. 列出所有配置
         echo "  → 列出所有配置"
         ./nacosctl get config -A -n public | tee /tmp/list-no-auth.txt
         if grep -q "test-no-auth.yaml" /tmp/list-no-auth.txt; then
@@ -99,7 +99,7 @@ jobs:
           exit 1
         fi
 
-        # 4. 删除配置
+        # 5. 删除配置
         echo "  → 删除配置"
         ./nacosctl delete config test-no-auth.yaml -n public
         if [ $? -eq 0 ]; then
@@ -109,7 +109,7 @@ jobs:
           exit 1
         fi
 
-        # 5. 验证删除
+        # 6. 验证删除
         echo "  → 验证删除"
         ./nacosctl get config test-no-auth.yaml -n public 2>&1 | grep -q "config data not exist"
         if [ $? -eq 0 ]; then
@@ -135,7 +135,11 @@ jobs:
         if [ $? -ne 0 ]; then echo "✗ 创建配置失败"; exit 1; fi
         echo "  ✓ 创建配置成功"
 
-        # 2. 获取配置
+        # 2. 等待配置同步
+        echo "  → 等待配置同步"
+        sleep 2
+
+        # 3. 获取配置
         echo "  → 获取配置"
         CONTENT=$(./nacosctl get config test-with-auth.yaml -n public)
         if echo "$CONTENT" | grep -q "test-with-auth"; then
@@ -145,7 +149,7 @@ jobs:
           exit 1
         fi
 
-        # 3. 列出所有配置
+        # 4. 列出所有配置
         echo "  → 列出所有配置"
         ./nacosctl get config -A -n public | tee /tmp/list-with-auth.txt
         if grep -q "test-with-auth.yaml" /tmp/list-with-auth.txt; then
@@ -155,7 +159,7 @@ jobs:
           exit 1
         fi
 
-        # 4. 创建不同类型的配置
+        # 5. 创建不同类型的配置
         echo "  → 测试不同文件类型"
 
         # JSON 类型
@@ -178,14 +182,14 @@ jobs:
           exit 1
         fi
 
-        # 5. 删除配置
+        # 6. 删除配置
         echo "  → 删除配置"
         ./nacosctl delete config test-with-auth.yaml -n public
         ./nacosctl delete config test.json -n public
         ./nacosctl delete config test.properties -n public
         echo "  ✓ 删除配置成功"
 
-        # 6. 验证 Token 缓存
+        # 7. 验证 Token 缓存
         echo "  → 验证 Token 缓存"
         if ls ~/.nacosctl/token_*.json 2>/dev/null | grep -q .; then
           echo "  ✓ Token 缓存文件存在"
