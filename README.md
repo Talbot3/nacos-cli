@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](https://golang.org/)
 [![Nacos Version](https://img.shields.io/badge/Nacos-2.4.0+-2E86C1?logo=apache-nifi&logoColor=white)](https://nacos.io/)
-[![Tests](https://github.com/szpinc/nacos-cli/actions/workflows/test.yml/badge.svg)](https://github.com/szpinc/nacos-cli/actions/workflows/test.yml)
+[![Tests](https://github.com/Talbot3/nacos-cli/actions/workflows/test.yml/badge.svg)](https://github.com/Talbot3/nacos-cli/actions/workflows/test.yml)
 
 `nacosctl` 是一个用于管理 Nacos 配置的命令行工具。
 
