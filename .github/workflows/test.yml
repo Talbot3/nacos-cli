@@ -111,8 +111,8 @@ jobs:
 
         # 6. 验证删除
         echo "  → 验证删除"
-        ./nacosctl get config test-no-auth.yaml -n public 2>&1 | grep -q "config data not exist"
-        if [ $? -eq 0 ]; then
+        OUTPUT=$(./nacosctl get config test-no-auth.yaml -n public 2>&1 || true)
+        if echo "$OUTPUT" | grep -q "config data not exist"; then
           echo "  ✓ 验证删除成功"
         else
           echo "✗ 验证删除失败"
