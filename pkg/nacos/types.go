@@ -95,4 +95,5 @@ type AuthRequest struct {
 type TokenCache struct {
 	AccessToken string `json:"accessToken"`
 	ExpireTime  int64  `json:"expireTime"` // 过期时间戳(秒)
+	Username    string `json:"username"`    // 缓存时使用的用户名
 }

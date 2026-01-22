@@ -41,23 +41,24 @@ func getCacheDir() (string, error) {
 }
 
 // getCacheFilePath 获取token缓存文件路径
-func getCacheFilePath(addr string) (string, error) {
+// 缓存文件基于地址和用户名，不同用户的 token 分开缓存
+func getCacheFilePath(addr, username string) (string, error) {
 	cacheDir, err := getCacheDir()
 	if err != nil {
 		return "", err
 	}
 
-	// 使用地址的hash作为文件名，避免特殊字符问题
+	// 使用地址+用户名的hash作为文件名，避免特殊字符问题
 	h := md5.New()
-	h.Write([]byte(addr))
+	h.Write([]byte(addr + ":" + username))
 	hash := hex.EncodeToString(h.Sum(nil))
 
 	return filepath.Join(cacheDir, "token_"+hash+".json"), nil
 }
 
 // loadToken 从缓存加载token
-func loadToken(addr string) (*TokenCache, error) {
-	cacheFile, err := getCacheFilePath(addr)
+func loadToken(addr, username string) (*TokenCache, error) {
+	cacheFile, err := getCacheFilePath(addr, username)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func loadToken(addr string) (*TokenCache, error) {
 
 // saveToken 保存token到缓存
 func saveToken(addr string, token *TokenCache) error {
-	cacheFile, err := getCacheFilePath(addr)
+	cacheFile, err := getCacheFilePath(addr, token.Username)
 	if err != nil {
 		return err
 	}
@@ -93,15 +94,41 @@ func saveToken(addr string, token *TokenCache) error {
 	return os.WriteFile(cacheFile, data, 0600)
 }
 
-// clearToken 清除token缓存
-func clearToken(addr string) error {
-	cacheFile, err := getCacheFilePath(addr)
+// clearToken 清除指定用户的token缓存
+func clearToken(addr, username string) error {
+	cacheFile, err := getCacheFilePath(addr, username)
 	if err != nil {
 		return err
 	}
 
 	if err := os.Remove(cacheFile); err != nil && !os.IsNotExist(err) {
 		return err
+	}
+
+	return nil
+}
+
+// clearAllTokens 清除指定地址的所有用户的token缓存
+func clearAllTokens(addr string) error {
+	cacheDir, err := getCacheDir()
+	if err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		return err
+	}
+
+	// 清除所有与该地址相关的旧缓存文件（不包含用户名的旧格式）
+	// 以及匹配该地址的新格式缓存
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), "token_") && strings.HasSuffix(entry.Name(), ".json") {
+			// 删除所有token缓存，因为我们无法确定它属于哪个用户
+			// 这样可以确保在认证失败时清除所有可能的旧缓存
+			filePath := filepath.Join(cacheDir, entry.Name())
+			_ = os.Remove(filePath)
+		}
 	}
 
 	return nil
@@ -184,10 +211,13 @@ func GetAccessToken(config *NacosConfig) (string, error) {
 		return "", nil
 	}
 
-	// 尝试从缓存加载
-	cachedToken, err := loadToken(config.Addr)
+	// 尝试从缓存加载（基于地址和用户名）
+	cachedToken, err := loadToken(config.Addr, config.Username)
 	if err == nil && isTokenValid(cachedToken) {
-		return cachedToken.AccessToken, nil
+		// 验证缓存的token是否属于当前用户
+		if cachedToken.Username == config.Username {
+			return cachedToken.AccessToken, nil
+		}
 	}
 
 	// token过期或无效，重新登录
@@ -196,11 +226,12 @@ func GetAccessToken(config *NacosConfig) (string, error) {
 		return "", err
 	}
 
-	// 保存到缓存
+	// 保存到缓存（包含用户名）
 	expireTime := time.Now().Unix() + authResp.TokenTTL
 	tokenCache := &TokenCache{
 		AccessToken: authResp.AccessToken,
 		ExpireTime:  expireTime,
+		Username:    config.Username,
 	}
 
 	if err := saveToken(config.Addr, tokenCache); err != nil {
@@ -211,7 +242,7 @@ func GetAccessToken(config *NacosConfig) (string, error) {
 	return authResp.AccessToken, nil
 }
 
-// ClearAccessToken 清除缓存的accessToken
+// ClearAccessToken 清除缓存的accessToken（清除该地址的所有缓存）
 func ClearAccessToken(addr string) error {
-	return clearToken(addr)
+	return clearAllTokens(addr)
 }
