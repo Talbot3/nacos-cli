@@ -1,0 +1,30 @@
+# IDE
+.idea/
+.vscode/
+
+# Binaries
+nacosctl
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+test-*.yaml
+test-*.json
+test-*.properties
+auth-test.yaml
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+
+# Build output
+/dist/
+/bin/
+
+# Go specific
+vendor/
