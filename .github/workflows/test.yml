@@ -109,7 +109,11 @@ jobs:
           exit 1
         fi
 
-        # 6. 验证删除
+        # 6. 等待删除同步
+        echo "  → 等待删除同步"
+        sleep 2
+
+        # 7. 验证删除
         echo "  → 验证删除"
         OUTPUT=$(./nacosctl get config test-no-auth.yaml -n public 2>&1 || true)
         if echo "$OUTPUT" | grep -q "config data not exist"; then

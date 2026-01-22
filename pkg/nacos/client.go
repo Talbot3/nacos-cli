@@ -327,13 +327,13 @@ func (c *Client) DeleteConfig(operation ConfigDeleteOperation) error {
 	}
 
 	// Nacos API 中 public 命名空间用空字符串表示
-	tenant := operation.Namespace
-	if tenant == "public" {
-		tenant = ""
+	// 但删除时不应该包含 tenant 参数（而不是传空字符串）
+	var deleteUrl string
+	if operation.Namespace == "public" || operation.Namespace == "" {
+		deleteUrl = fmt.Sprintf("%s?dataId=%s&group=%s", configUrl, operation.DataId, operation.Group)
+	} else {
+		deleteUrl = fmt.Sprintf("%s?dataId=%s&group=%s&tenant=%s", configUrl, operation.DataId, operation.Group, operation.Namespace)
 	}
-
-	// 构建删除请求URL
-	deleteUrl := fmt.Sprintf("%s?dataId=%s&group=%s&tenant=%s", configUrl, operation.DataId, operation.Group, tenant)
 
 	req, err := http.NewRequest(http.MethodDelete, deleteUrl, nil)
 	if err != nil {
