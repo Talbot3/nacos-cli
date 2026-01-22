@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -17,8 +14,29 @@ var (
 // applyCmd represents the apply command
 var applyCmd = &cobra.Command{
 	Use:   "apply",
-	Short: "create or update resource",
-	Long:  ``,
+	Short: "创建或更新配置",
+	Long: `在 Nacos 服务器上创建或更新配置。
+
+apply 命令会创建新配置或更新现有配置。
+默认情况下，dataId 从文件名派生，但可以通过 --id 参数覆盖。
+文件类型会从文件扩展名自动检测。`,
+	Example: `  # 使用文件创建或更新配置
+  nacosctl apply config --file ./app.yaml -n public -g DEFAULT_GROUP
+
+  # 指定自定义 dataId
+  nacosctl apply config --file ./config.yaml --id app-config -n public
+
+  # 显式指定文件类型
+  nacosctl apply config --file ./app.conf --type properties -n public
+
+  # 使用环境变量
+  export NACOS_ADDR="http://localhost:8848/nacos"
+  export NACOS_USERNAME="nacos"
+  export NACOS_PASSWORD="nacos"
+  nacosctl apply config --file ./app.yaml -n public
+
+  # 使用自定义分组
+  nacosctl apply config --file ./app.yaml -n public -g PROD_GROUP`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return nacosClient.ApplyConfig(nacos.ConfigApplyOperation{
 			NacosOperation: &nacos.NacosOperation{
@@ -33,10 +51,9 @@ var applyCmd = &cobra.Command{
 }
 
 func init() {
-
-	applyCmd.Flags().StringVarP(&file, "file", "f", "", "config file(required)")
-	applyCmd.Flags().StringVarP(&dataId, "id", "d", "", "data id")
-	applyCmd.Flags().StringVarP(&fileType, "type", "t", "", "config file type. e.g: yaml")
+	applyCmd.Flags().StringVarP(&file, "file", "f", "", "配置文件路径 (必填)")
+	applyCmd.Flags().StringVarP(&dataId, "id", "d", "", "自定义 dataId (默认为文件名)")
+	applyCmd.Flags().StringVarP(&fileType, "type", "t", "", "配置文件类型 (如: yaml, properties, json)。默认从文件扩展名自动检测")
 
 	applyCmd.MarkFlagRequired("file")
 

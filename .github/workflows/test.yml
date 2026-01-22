@@ -1,0 +1,134 @@
+name: Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Start Nacos test environment
+      run: docker-compose up -d
+
+    - name: Wait for Nacos to be ready
+      run: |
+        echo "等待 Nacos 服务启动..."
+        sleep 30
+        curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:8848/nacos/v1/console/health/readiness
+        curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:8849/nacos/v1/console/health/readiness
+
+    - name: Build
+      run: CGO_ENABLED=0 go build -o nacosctl .
+
+    - name: Test without authentication (port 8848)
+      run: |
+        export NACOS_ADDR="http://localhost:8848/nacos"
+
+        # 创建测试配置
+        echo "app.name: test-no-auth" > test-no-auth.yaml
+        ./nacosctl apply config --file test-no-auth.yaml -n public
+        [ $? -eq 0 ] || { echo "创建配置失败"; exit 1; }
+
+        # 获取配置
+        CONTENT=$(./nacosctl get config test-no-auth.yaml -n public)
+        echo "$CONTENT" | grep -q "test-no-auth"
+        [ $? -eq 0 ] || { echo "获取配置失败或内容不匹配"; exit 1; }
+
+        # 列出所有配置
+        ./nacosctl get config -A -n public
+        [ $? -eq 0 ] || { echo "列出配置失败"; exit 1; }
+
+        # 删除配置
+        ./nacosctl delete config test-no-auth.yaml -n public
+        [ $? -eq 0 ] || { echo "删除配置失败"; exit 1; }
+
+        echo "无认证模式测试通过"
+
+    - name: Test with authentication (port 8849)
+      run: |
+        export NACOS_ADDR="http://localhost:8849/nacos"
+        export NACOS_USERNAME="nacos"
+        export NACOS_PASSWORD="nacos"
+
+        # 登录测试
+        LOGIN_RESP=$(curl -s -X POST http://localhost:8849/nacos/v1/auth/login -d "username=nacos&password=nacos")
+        echo "$LOGIN_RESP" | grep -q "accessToken"
+        [ $? -eq 0 ] || { echo "登录失败"; exit 1; }
+
+        # 创建测试配置
+        echo "app.name: test-with-auth" > test-with-auth.yaml
+        ./nacosctl apply config --file test-with-auth.yaml -n public
+        [ $? -eq 0 ] || { echo "创建配置失败"; exit 1; }
+
+        # 获取配置
+        CONTENT=$(./nacosctl get config test-with-auth.yaml -n public)
+        echo "$CONTENT" | grep -q "test-with-auth"
+        [ $? -eq 0 ] || { echo "获取配置失败或内容不匹配"; exit 1; }
+
+        # 列出所有配置
+        ./nacosctl get config -A -n public
+        [ $? -eq 0 ] || { echo "列出配置失败"; exit 1; }
+
+        # 删除配置
+        ./nacosctl delete config test-with-auth.yaml -n public
+        [ $? -eq 0 ] || { echo "删除配置失败"; exit 1; }
+
+        # 验证 Token 缓存
+        ls ~/.nacosctl/token_*.json
+        [ $? -eq 0 ] || { echo "Token 缓存文件不存在"; exit 1; }
+
+        echo "带认证模式测试通过"
+
+    - name: Test token cache and refresh
+      run: |
+        export NACOS_ADDR="http://localhost:8849/nacos"
+        export NACOS_USERNAME="nacos"
+        export NACOS_PASSWORD="nacos"
+
+        # 清除之前的缓存
+        rm -f ~/.nacosctl/token_*.json
+
+        # 第一次请求会生成 token
+        ./nacosctl get config -A -n public > /dev/null
+        [ $? -eq 0 ] || { echo "首次请求失败"; exit 1; }
+
+        # 检查缓存文件已创建
+        CACHE_FILE=$(ls ~/.nacosctl/token_*.json 2>/dev/null | head -1)
+        [ -n "$CACHE_FILE" ] || { echo "Token 缓存未创建"; exit 1; }
+
+        # 验证缓存文件内容
+        cat "$CACHE_FILE" | grep -q "accessToken"
+        [ $? -eq 0 ] || { echo "Token 缓存内容无效"; exit 1; }
+
+        # 第二次请求应该使用缓存
+        ./nacosctl get config -A -n public > /dev/null
+        [ $? -eq 0 ] || { echo "使用缓存请求失败"; exit 1; }
+
+        echo "Token 缓存测试通过"
+
+    - name: Run unit tests
+      run: go test -v ./...
+
+    - name: Docker logs on failure
+      if: failure()
+      run: |
+        echo "=== Nacos No Auth Logs ==="
+        docker logs nacos-no-auth
+        echo "=== Nacos With Auth Logs ==="
+        docker logs nacos-with-auth
+
+    - name: Cleanup
+      if: always()
+      run: docker-compose down

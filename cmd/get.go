@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -10,15 +7,30 @@ import (
 // getCmd represents the get command
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get a resource from nacos server",
-	Long: `
-		Get a resource from nacos server
-	`,
-	Example: "nacosctl edit config common.yml",
+	Short: "获取 Nacos 配置",
+	Long: `从 Nacos 服务器获取配置。
+
+可以指定 dataId 获取单个配置，或使用 --all 参数列出命名空间中的所有配置。`,
+	Example: `  # 获取指定配置
+  nacosctl get config app.yaml -n public -g DEFAULT_GROUP
+
+  # 获取配置并保存到文件
+  nacosctl get config app.yaml -n public > app.yaml
+
+  # 列出命名空间中的所有配置
+  nacosctl get config -A -n public
+
+  # 列出指定分组中的所有配置
+  nacosctl get config -A -n public -g PROD_GROUP
+
+  # 使用环境变量进行认证
+  export NACOS_ADDR="http://localhost:8848/nacos"
+  export NACOS_USERNAME="nacos"
+  export NACOS_PASSWORD="nacos"
+  nacosctl get config app.yaml -n public`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
-	// ValidArgs: []string{"config"},
 }
 
 func init() {

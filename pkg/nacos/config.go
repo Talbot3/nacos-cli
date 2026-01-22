@@ -3,8 +3,6 @@ package nacos
 import (
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -48,36 +46,3 @@ func (c *Client) ApplyConfig(operation ConfigApplyOperation) error {
 	return nil
 }
 
-// DeleteConfig 删除配置
-func (c *Client) DeleteConfig(operation ConfigDeleteOperation) error {
-	deleteUrl, err := getUrl(c.Config)
-
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("DELETE", deleteUrl, nil)
-
-	if err != nil {
-		return nil
-	}
-
-	// 请求参数
-	req.URL.RawQuery = url.Values{
-		"dataId": []string{operation.DataId},
-		"group":  []string{operation.Group},
-		"tenant": []string{operation.Namespace},
-	}.Encode()
-
-	resp, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("response error,status code:%d", resp.StatusCode)
-	}
-
-	return nil
-}

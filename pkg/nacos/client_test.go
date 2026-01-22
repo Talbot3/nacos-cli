@@ -1,89 +1,52 @@
 package nacos
 
 import (
-	"fmt"
-	"github/szpinc/nacosctl/pkg/editor"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGet(t *testing.T) {
-
-	client := Client{
-		Config: &NacosConfig{
-			Addr:       "http://172.16.8.123:8848/nacos",
-			ApiVersion: "v1",
-		},
-	}
-
-	content, err := client.Get(ConfigGetOperation{
-		NacosOperation: &DefaultNacosOperation,
-		DataId:         "common.yaml",
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(content)
+func TestNewDefaultClient(t *testing.T) {
+	client := NewDefaultClient()
+	assert.NotNil(t, client)
+	assert.NotNil(t, client.Config)
 }
 
-func TestEdit(t *testing.T) {
-
-	configFile := "/Users/ghostdog/GoProjects/nacos-cli/basic-data-webapi.yaml"
-
-	e := editor.NewDefaultEditor([]string{})
-
-	err := e.Launch(configFile)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Edited")
-
-	contentBytes, err := os.ReadFile(configFile)
-
-	if err != nil {
-		panic(err)
-	}
-
-	client := Client{
-		Config: &NacosConfig{
-			Addr:       "http://172.16.8.123:8848/nacos",
-			ApiVersion: "v1",
-		},
-	}
-
-	err = client.Edit(ConfigEditOperation{
-		NacosOperation: &DefaultNacosOperation,
-		DataId:         "common.yaml",
-		Content:        string(contentBytes),
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
+func TestNewClient(t *testing.T) {
+	client := NewClient("http://localhost:8848/nacos", "v1", "nacos", "nacos")
+	assert.NotNil(t, client)
+	assert.NotNil(t, client.Config)
+	assert.Equal(t, "http://localhost:8848/nacos", client.Config.Addr)
+	assert.Equal(t, "v1", client.Config.ApiVersion)
+	assert.Equal(t, "nacos", client.Config.Username)
+	assert.Equal(t, "nacos", client.Config.Password)
 }
 
-func TestDeleteConfig(t *testing.T) {
-	client := Client{
-		Config: &NacosConfig{
-			Addr:       "http://172.16.8.123:8848/nacos",
-			ApiVersion: "v1",
-		},
+func TestGetUrl(t *testing.T) {
+	config := &NacosConfig{
+		Addr:       "http://localhost:8848/nacos",
+		ApiVersion: "v1",
 	}
-
-	err := client.DeleteConfig(ConfigDeleteOperation{
-		NacosOperation: &NacosOperation{
-			Group:     "DEFAULT_GROUP",
-			Namespace: "demo",
-		},
-		DataId: "common.yaml",
-	})
-
+	url, err := getUrl(config)
 	assert.Nil(t, err)
+	assert.Equal(t, "http://localhost:8848/nacos/v1/cs/configs", url)
+}
+
+func TestIsTokenValid(t *testing.T) {
+	tests := []struct {
+		name  string
+		token *TokenCache
+		valid bool
+	}{
+		{"nil token", nil, false},
+		{"empty token", &TokenCache{}, false},
+		{"valid token", &TokenCache{AccessToken: "test", ExpireTime: 9999999999}, true},
+		{"expired token", &TokenCache{AccessToken: "test", ExpireTime: 1000000000}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isTokenValid(tt.token)
+			assert.Equal(t, tt.valid, result)
+		})
+	}
 }

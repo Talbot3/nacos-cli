@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -24,8 +21,18 @@ var (
 
 var getConfig = &cobra.Command{
 	Use:   "config",
-	Short: "nacos config",
-	Long:  ``,
+	Short: "获取 Nacos 配置",
+	Long: `从 Nacos 服务器获取配置。
+
+可以指定 dataId 获取单个配置，或使用 --all 参数列出命名空间中的所有配置。`,
+	Example: `  # 获取指定配置
+  nacosctl get config app.yaml -n public -g DEFAULT_GROUP
+
+  # 列出所有配置
+  nacosctl get config -A -n public
+
+  # 保存配置到文件
+  nacosctl get config app.yaml -n public > app.yaml`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if getAllConfig {
@@ -44,7 +51,7 @@ var getConfig = &cobra.Command{
 		}
 
 		if len(args) == 0 {
-			return errors.New("data id required")
+			return errors.New("请指定 dataId")
 		}
 
 		dataId := args[0]
@@ -87,8 +94,16 @@ var getConfig = &cobra.Command{
 
 var editConfig = &cobra.Command{
 	Use:   "config",
-	Short: "nacos config",
-	Long:  ``,
+	Short: "交互式编辑配置",
+	Long: `交互式编辑 Nacos 服务器上的配置。
+
+配置会被下载并在默认编辑器中打开，保存并关闭编辑器后，更改会自动上传到服务器。`,
+	Example: `  # 编辑配置
+  nacosctl edit config app.yaml -n public -g DEFAULT_GROUP
+
+  # 指定编辑器
+  export EDITOR=vim
+  nacosctl edit config app.yaml -n public`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var dataId = args[0]
@@ -121,13 +136,13 @@ var editConfig = &cobra.Command{
 		editedMd5 := util.Md5BytesToString(edited)
 
 		if configData.Md5 == editedMd5 {
-			fmt.Println("Not Changed")
+			fmt.Println("配置未修改")
 			return
 		}
 
 		defer func(f string) {
 			if e := os.Remove(f); e != nil {
-				fmt.Println("delete temp file error:", e)
+				fmt.Println("删除临时文件错误:", e)
 			}
 		}(file)
 
@@ -150,35 +165,45 @@ var editConfig = &cobra.Command{
 			return
 		}
 
-		fmt.Println("Edited")
+		fmt.Println("配置已更新")
 	},
 }
 
 var deleteConfig = &cobra.Command{
 	Use:   "config",
-	Short: "nacos config",
-	Long:  ``,
+	Short: "删除 Nacos 配置",
+	Long: `删除 Nacos 服务器上的配置。
+
+此操作会永久删除配置，无法撤销。`,
+	Example: `  # 删除配置
+  nacosctl delete config app.yaml -n public -g DEFAULT_GROUP`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if len(args) == 0 {
-			return errors.New("data id required")
+			return errors.New("请指定 dataId")
 		}
 
-		return nacosClient.DeleteConfig(nacos.ConfigDeleteOperation{
+		err := nacosClient.DeleteConfig(nacos.ConfigDeleteOperation{
 			NacosOperation: &nacos.NacosOperation{
 				Namespace: namespace,
 				Group:     group,
 			},
 			DataId: args[0],
 		})
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("配置已删除")
+		return nil
 	},
 }
 
 func init() {
 
-	editConfig.Flags().StringVarP(&fileType, "type", "t", "", "file type")
+	editConfig.Flags().StringVarP(&fileType, "type", "t", "", "配置文件类型 (如: yaml, properties, json)")
 
-	getConfig.Flags().BoolVarP(&getAllConfig, "all", "A", false, "If present, list the requested object(s) across all config name")
+	getConfig.Flags().BoolVarP(&getAllConfig, "all", "A", false, "列出命名空间中的所有配置")
 
 	editCmd.AddCommand(editConfig)
 	getCmd.AddCommand(getConfig)
@@ -189,7 +214,7 @@ func printTable(items []nacos.NacosPageItem) {
 	table := uitable.New()
 	table.MaxColWidth = 50
 
-	table.AddRow("ID", "GROUP", "NAMESPACE")
+	table.AddRow("DataID", "GROUP", "NAMESPACE")
 
 	for _, item := range items {
 		if item.Tenant == "" {

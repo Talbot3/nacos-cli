@@ -20,13 +20,13 @@ type ConfigEditOperation struct {
 	Type    string // 文件类型
 }
 
-// ConfigEditOperation 配置查询操作
+// ConfigGetOperation 配置查询操作
 type ConfigGetOperation struct {
 	*NacosOperation
 	DataId string // data-id
 }
 
-// ConfigApplyOperation 配置更新操作
+// ConfigApplyOperation 配置应用操作
 type ConfigApplyOperation struct {
 	*NacosOperation
 	File   string // 配置文件
@@ -76,4 +76,23 @@ type NacosConfigDetail struct {
 	Use              string `json:"use"`
 	Effect           string `json:"effect"`
 	Schema           string `json:"schema"`
+}
+
+// AuthResponse 登录响应
+type AuthResponse struct {
+	AccessToken string `json:"accessToken"`
+	TokenTTL    int64  `json:"tokenTTL"`
+	GlobalAdmin bool   `json:"globalAdmin"`
+}
+
+// AuthRequest 登录请求
+type AuthRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// TokenCache token缓存
+type TokenCache struct {
+	AccessToken string `json:"accessToken"`
+	ExpireTime  int64  `json:"expireTime"` // 过期时间戳(秒)
 }
