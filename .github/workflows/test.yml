@@ -75,7 +75,11 @@ jobs:
         if [ $? -ne 0 ]; then echo "✗ 创建配置失败"; exit 1; fi
         echo "  ✓ 创建配置成功"
 
-        # 2. 获取配置
+        # 2. 等待配置同步
+        echo "  → 等待配置同步"
+        sleep 2
+
+        # 3. 获取配置
         echo "  → 获取配置"
         CONTENT=$(./nacosctl get config test-no-auth.yaml -n public)
         if echo "$CONTENT" | grep -q "test-no-auth"; then
