@@ -20,7 +20,7 @@ jobs:
         go-version: '1.21'
 
     - name: Start Nacos test environment
-      run: docker-compose up -d
+      run: docker compose up -d
 
     - name: Wait for Nacos to be ready
       run: |
@@ -131,4 +131,4 @@ jobs:
 
     - name: Cleanup
       if: always()
-      run: docker-compose down
+      run: docker compose down
