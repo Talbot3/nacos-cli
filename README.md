@@ -132,6 +132,39 @@ nacosctl delete config app.yaml -n public
 
 Token 缓存在 `~/.nacosctl/token_*.json`，有效期 5 小时，过期前自动刷新。
 
+### Nacos 2.4.0+ 管理员密码初始化
+
+从 Nacos 2.4.0 版本开始，**已取消默认密码**。首次启用认证后，需要通过 API 初始化管理员用户 `nacos` 的密码：
+
+```bash
+# 初始化管理员密码
+curl -X POST 'http://localhost:8849/nacos/v1/auth/users/admin' -d 'password=your-password'
+
+# 响应示例
+{"username":"nacos","password":"your-password"}
+```
+
+> **注意**：
+> - 用户名固定为 `nacos`，不可修改
+> - 若不指定 `password` 参数或传空字符串，Nacos 将生成随机密码
+> - 该 API 只能在首次初始化时调用一次，成功后将无法再次调用
+
+### Docker 环境初始化步骤
+
+如果使用 Docker Compose 启动带认证的 Nacos，首次启动后请执行：
+
+```bash
+# 1. 等待 Nacos 启动完成
+docker-compose up -d
+sleep 30
+
+# 2. 初始化管理员密码
+curl -X POST 'http://localhost:8849/nacos/v1/auth/users/admin' -d 'password=nacos'
+
+# 3. 验证登录
+curl -X POST 'http://localhost:8849/nacos/v1/auth/login' -d 'username=nacos&password=nacos'
+```
+
 ## 常见问题
 
 **Q: 如何查看帮助信息？**
@@ -180,7 +213,17 @@ nacosctl get config test.yaml -n public
 
 ### 测试带认证模式
 
+> **重要**: Nacos 2.4.0+ 首次启动后需要先初始化管理员密码
+
 ```bash
+# 1. 启动服务
+docker-compose up -d
+sleep 30
+
+# 2. 初始化管理员密码（仅首次需要）
+curl -X POST 'http://localhost:8849/nacos/v1/auth/users/admin' -d 'password=nacos'
+
+# 3. 测试 nacosctl
 export NACOS_ADDR="http://localhost:8849/nacos"
 export NACOS_USERNAME="nacos"
 export NACOS_PASSWORD="nacos"

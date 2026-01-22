@@ -12,15 +12,15 @@ services:
       - "8848:8848"
       - "9848:9848"
 
-  # 带认证模式 (用户名: nacos, 密码: talbot3@202601)
-  # 注意: 首次启动必须设置 NACOS_AUTH_INIT_PASSWORD，用户名固定为 nacos
+  # 带认证模式 (用户名: nacos, 密码: nacos)
+  # 注意: Nacos 2.4.0+ 取消了默认密码，首次启动后需要通过 API 初始化管理员密码：
+  #   curl -X POST 'http://localhost:8849/nacos/v1/auth/users/admin' -d 'password=nacos'
   nacos-with-auth:
     image: nacos/nacos-server:v2.5.2
     container_name: nacos-with-auth
     environment:
       - MODE=standalone
       - NACOS_AUTH_ENABLE=true
-      - NACOS_AUTH_INIT_PASSWORD=talbot3@202601
       - NACOS_AUTH_TOKEN=6tM0ZqW5uvWHJy8pzwNWQmj5kdsWgtaYoRkxW4ZuogE=
       - NACOS_AUTH_IDENTITY_KEY=talbot8b-nacos-key
       - NACOS_AUTH_IDENTITY_VALUE=talbot8b@2025!NacosServerIdentity

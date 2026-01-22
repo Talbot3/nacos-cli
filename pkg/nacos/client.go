@@ -68,7 +68,13 @@ func (c *Client) Get(operation ConfigGetOperation) (*NacosConfigDetail, error) {
 		return nil, err
 	}
 
-	requestUrl := fmt.Sprintf(configUrl+"?dataId=%s&group=%s&tenant=%s", operation.DataId, operation.Group, operation.Namespace)
+	// Nacos API 中 public 命名空间用空字符串表示
+	tenant := operation.Namespace
+	if tenant == "public" {
+		tenant = ""
+	}
+
+	requestUrl := fmt.Sprintf(configUrl+"?dataId=%s&group=%s&tenant=%s", operation.DataId, operation.Group, tenant)
 
 	req, err := c.createRequest(http.MethodGet, requestUrl, nil)
 	if err != nil {
@@ -163,7 +169,13 @@ func (c *Client) AllConfig(operation ConfigGetOperation) ([]NacosPageItem, error
 		return nil, err
 	}
 
-	requestUrl := fmt.Sprintf(configUrl+"?dataId=&group=%s&tenant=%s&pageNo=1&pageSize=999&search=accurate", operation.Group, operation.Namespace)
+	// Nacos API 中 public 命名空间用空字符串表示
+	tenant := operation.Namespace
+	if tenant == "public" {
+		tenant = ""
+	}
+
+	requestUrl := fmt.Sprintf(configUrl+"?dataId=&group=%s&tenant=%s&pageNo=1&pageSize=999&search=accurate", operation.Group, tenant)
 
 	req, err := c.createRequest(http.MethodGet, requestUrl, nil)
 	if err != nil {
@@ -236,11 +248,17 @@ func (c *Client) Edit(operation ConfigEditOperation) error {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
 
+	// Nacos API 中 public 命名空间用空字符串表示
+	tenant := operation.Namespace
+	if tenant == "public" {
+		tenant = ""
+	}
+
 	formData := url.Values{
 		"dataId":  []string{operation.DataId},
 		"group":   []string{operation.Group},
 		"content": []string{operation.Content},
-		"tenant":  []string{operation.Namespace},
+		"tenant":  []string{tenant},
 		"type":    []string{operation.Type},
 	}
 
@@ -308,8 +326,14 @@ func (c *Client) DeleteConfig(operation ConfigDeleteOperation) error {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
 
+	// Nacos API 中 public 命名空间用空字符串表示
+	tenant := operation.Namespace
+	if tenant == "public" {
+		tenant = ""
+	}
+
 	// 构建删除请求URL
-	deleteUrl := fmt.Sprintf("%s?dataId=%s&group=%s&tenant=%s", configUrl, operation.DataId, operation.Group, operation.Namespace)
+	deleteUrl := fmt.Sprintf("%s?dataId=%s&group=%s&tenant=%s", configUrl, operation.DataId, operation.Group, tenant)
 
 	req, err := http.NewRequest(http.MethodDelete, deleteUrl, nil)
 	if err != nil {
