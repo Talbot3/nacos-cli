@@ -4,7 +4,7 @@ version: "3.8"
 services:
   # 无认证模式
   nacos-no-auth:
-    image: docker.1ms.run/nacos/nacos-server:v2.5.2
+    image: nacos/nacos-server:v2.5.2
     container_name: nacos-no-auth
     environment:
       - PREFER_HOST_MODE=hostname
@@ -21,7 +21,7 @@ services:
 
   # 带认证模式 (用户名: nacos, 密码: nacos)
   nacos-with-auth:
-    image: docker.1ms.run/nacos/nacos-server:v2.5.2
+    image: nacos/nacos-server:v2.5.2
     container_name: nacos-with-auth
     environment:
       - PREFER_HOST_MODE=hostname
